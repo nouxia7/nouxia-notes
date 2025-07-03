@@ -14,6 +14,7 @@ params:
   title: Nouxia's Notes
   description: Nouxia's CTF Blog
   keywords: ["blog", "ctf", "writeup", "pwn", "pwning", "binary exploitation", "nouxia"]
+  author: "nouxia"
   homeInfoParams:
     Title: Hey there, I'm Nouxia!
     Content: I'm currently a student studying Computer Science and an avid CTF player. This blog is where I jot down notes on everything new I learn along the way. I hope you can find something useful here!

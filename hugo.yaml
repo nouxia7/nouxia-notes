@@ -23,7 +23,7 @@ params:
     enabled: true
     title: "Nouxia's Notes" # optional default will be site title
     subtitle: "My collection of notes on everything new I learn. Hope you can find something useful here!"
-    imageUrl: "/images/profile.jpg" # optional
+    imageUrl: "/nouxia-notes/images/profile.jpg" # optional
     imageTitle: "profile-picture" # optional
     imageWidth: 120 # custom size
     imageHeight: 120 # custom size

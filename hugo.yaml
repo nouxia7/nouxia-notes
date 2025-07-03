@@ -1,0 +1,61 @@
+baseURL: https://example.org/
+languageCode: en-us
+title: Nouxia's Notes
+theme: ["PaperMod"]
+
+enableRobotsTXT: true
+
+minify:
+  disableXML: true
+  minifyOutput: true
+
+params:
+  env: production
+  title: Nouxia's Notes
+  description: Nouxia's CTF Blog
+  keywords: ["blog", "ctf", "writeup", "pwn", "pwning", "binary exploitation", "nouxia"]
+  homeInfoParams:
+    Title: Hey there, I'm Nouxia!
+    Content: I'm currently a student studying Computer Science and an avid CTF player. This blog is where I jot down notes on everything new I learn along the way. I hope you can find something useful here!
+
+  ShowReadingTime: true
+  ShowShareButtons: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  showtoc: true
+  disableSpecial1stPost: false
+  disableScrollToTop: false
+  comments: false
+  hidemeta: false
+  hideSummary: false
+
+  socialIcons:
+    - name: "discord"
+      url: "https://discord.com/users/576631388149645313"
+    - name: "github"
+      url: "https://github.com/nouxia7"
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON # necessary for search
+
+menu:
+  main:
+    - identifier: archive
+      name: Archives
+      url: /archives/
+      weight: 10
+    - identifier: search
+      name: Search
+      url: /search/
+      weight: 20
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20

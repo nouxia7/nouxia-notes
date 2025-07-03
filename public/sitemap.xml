@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>http://localhost:1313/posts/musl-fsop-arkavidia-2025/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/fsop/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/musl/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/pwn/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2025-07-03T21:58:08+07:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/archives/</loc>
+  </url><url>
+    <loc>http://localhost:1313/categories/</loc>
+  </url><url>
+    <loc>http://localhost:1313/search/</loc>
+  </url>
+</urlset>

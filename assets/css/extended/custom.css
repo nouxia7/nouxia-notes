@@ -1,0 +1,8 @@
+.main .profile {
+    /* Remove the full-screen height forcing */
+    min-height: auto;
+
+    /* Add some padding to control the space */
+    padding-top: 20px;
+    padding-bottom: 20px;
+}

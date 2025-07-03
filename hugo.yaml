@@ -15,9 +15,18 @@ params:
   description: Nouxia's CTF Blog
   keywords: ["blog", "ctf", "writeup", "pwn", "pwning", "binary exploitation", "nouxia"]
   author: "nouxia"
+  # homeInfoParams:
+  #   Title: Hey there, I'm Nouxia!
+  #   Content: I'm currently a student studying Computer Science and an avid CTF player. This blog is where I jot down notes on everything new I learn along the way. I hope you can find something useful here!
+  
   homeInfoParams:
-    Title: Hey there, I'm Nouxia!
-    Content: I'm currently a student studying Computer Science and an avid CTF player. This blog is where I jot down notes on everything new I learn along the way. I hope you can find something useful here!
+    enabled: true
+    title: "Nouxia's Notes" # optional default will be site title
+    subtitle: "My collection of notes on everything new I learn. Hope you can find something useful here!"
+    imageUrl: "/images/profile.jpg" # optional
+    imageTitle: "profile-picture" # optional
+    imageWidth: 120 # custom size
+    imageHeight: 120 # custom size
 
   ShowReadingTime: true
   ShowShareButtons: true

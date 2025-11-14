@@ -1,6 +1,6 @@
 ---
 date: '2025-07-06T21:08:10+07:00'
-draft: true
+draft: false
 title: 'A Blind Pwn Challenge: Leaking Flags with Only Open and Read Syscalls (Grid, Industrial Intrusion 2025)'
 ---
 

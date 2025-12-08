@@ -4,7 +4,7 @@ draft: false
 title: 'Kernel Exploitation on ARM64 (HeroCTF v7)'
 ---
 
-A couple days ago, our team `CSUI` participated in [HeroCTF v7](https://ctftime.org/event/2869) and managed to secure 9th place at the end. One of the challenges there was `Safe Device`, a pwn challenge with the least solves, clocking in at 7 solves at the end of the event.
+A couple days ago, our team `CSUI` participated in [HeroCTF v7](https://ctftime.org/event/2869) and managed to secure 9th place at the end. One of the challenges there was `Safe Device`, a pwn challenge with the least solves, finishing with only 7 solves at the end of the event.
 
 {{<figure src="images/challenge.png" width="400" class="align-center">}}
 
@@ -33,7 +33,7 @@ Before we start analyzing the module, let's set up a debugging environment first
 # console::respawn:/sbin/getty -L  console 0 vt100 # GENERIC_SERIAL
 console::respawn:-/bin/sh
 ```
-After that, we need to set up debugging using GDB. Since I'm on an x86 machine and the kernel image is on ARM, I needed to install `gdb-multiarch`. You can install that using apt.
+After that, we need to set up debugging using GDB. Since I'm on an x64 machine and the kernel image is on ARM64, I needed to install `gdb-multiarch`. You can install that using apt.
 ```bash
 sudo apt install gdb-multiarch
 ```
@@ -224,7 +224,7 @@ pwndbg>
 We found our target, `0xffff000000a90010`. Interestingly, this address doesn't seem to be affected by KASLR. I've run this test multiple times and the address inside `0xffff000000a90010` always points to the kernel image everytime. I'm not quite sure why this happens, but hey, atleast we got our leak.
 
 ### Bypassing the Canary
-This one is a bit tricker than getting the kernel base. I put a breakpoint in `safe_log` to see where the kernel was obtaining its canary from.
+This one is a bit trickier than getting the kernel base. I put a breakpoint in `safe_log` to see where the kernel was obtaining its canary from.
 ```nasm
    0xffffbd5b95c90200    sub    sp, sp, #0x60             SP => 0xffff800080223940 (0xffff8000802239a0 - 0x60)
    0xffffbd5b95c90204    stp    x29, x30, [sp, #0x50]
@@ -251,7 +251,7 @@ static __always_inline struct task_struct *get_current(void)
 
 #define current get_current()
 ```
-This macro directly corresponds to the assembly code `mrs x8, sp_el0` you see above. To find if I could leak the current task_struct address, I did a search to see in what other places it appeared at. I figured that if the current `task_struct` address was different on every run, then the kernel must have written it somewhere in memory for it to be able to read it later. So, I focused my search in regions of memory after aren't just readable, but also writeable.
+This macro directly corresponds to the assembly code `mrs x8, sp_el0` you see above. To find if I could leak the current task_struct address, I did a search to see in what other places it appeared at. I figured that if the current `task_struct` address was different on every run, then the kernel must have written it somewhere in memory for it to be able to read it later. So, I focused my search in regions of memory that aren't just readable, but also writeable.
 
 ```
 pwndbg> vmmap
@@ -276,7 +276,7 @@ pwndbg> x/gx 0xffff000001b50190+0xe8
 0xffff000001b50278:     0xf16b8d31cc4fae00
 pwndbg>
 ```
-After fidling around a bit, I found that the above address constantly contained an address that pointed to the current task struct. Since that region of memory wasn't contigous with the kernel's memory, I had to find another leak in kernel memory for that particular memory region.
+After fiddling around a bit, I found that the above address constantly contained an address that pointed to the current task struct. Since that region of memory wasn't contigous with the kernel's memory, I had to find another leak in kernel memory for that particular memory region.
 ```
 pwndbg> search --dword 0xbd5bf568 [pt_ffffbd5bf5290]
 Searching for a 4-byte integer: b'h\xf5[\xbd'
@@ -298,7 +298,7 @@ pwndbg>
 We got em. So the flow to leak the canary will be: Leak kbase -> Leak the rw region -> Leak task_struct -> Leak canary.
 
 ## Constructing the ROP Chain
-Initially, I had plan to make a chain to execute `commit_creds(prepare_kernel_cred(0))`. However, I found out that on newer kernel versions, `prepare_kernel_cred(0)` doesn't return a pointer to root creds anymore. https://elixir.bootlin.com/linux/v6.17.7/source/kernel/cred.c#L579
+Initially, I had planned to make a chain to execute `commit_creds(prepare_kernel_cred(0))`. However, I found out that on newer kernel versions, `prepare_kernel_cred(0)` doesn't return a pointer to root creds anymore. https://elixir.bootlin.com/linux/v6.17.7/source/kernel/cred.c#L579
 ```c
 struct cred *prepare_kernel_cred(struct task_struct *daemon)
 {
@@ -323,7 +323,7 @@ Searching for byte: b'/sbin/modprobe'
 I tested out if this is the actual `modprobe_path` address by manually overwriting it using pwndbg then triggering the modprobe exploit with the code in the above article. It was a success so it is confirmed that this is the right address. Another nice thing is that the address seems to be constant. After rebooting a couple times, the address always stayed in the same place so no need for anymore leaks.
 
 ### Finding Gadgets
-Running `ROPgadget` normally on `Image` doesn't seem to work for me. So I ran it with the following command.
+Running `ROPgadget` normally on `Image` didn't seem to work for me. So I ran it with the following command.
 ```bash
 ROPgadget \
   --binary Image \
@@ -353,7 +353,7 @@ This gadget is for loading a bunch of controlled values into registers. Generall
 This gadget is for writing to memory. We'll be using this to overwrite `modprobe_path`.
 
 ### Returning to Userland
-After overwriting `modprobe_path`, we have to return to userland cleanly to be able to use our new modprobe string. If we just go to some random address after our ROP chain, we'll end up crashing the kernel and won't be able to do anything else. The usual `swapgs_restore_regs_and_return_to_usermode` function that you use to switch back to userland in x86 doesn't seem to be present in arm. So, I decided to see how syscalls actually flow in arm64. I created a simple assembly file then put a breakpoint at the first instruction.
+After overwriting `modprobe_path`, we have to return to userland cleanly to be able to use our new modprobe string. If we just go to some random address after our ROP chain, we'll end up crashing the kernel and won't be able to do anything else. The usual `swapgs_restore_regs_and_return_to_usermode` function that you use to switch back to userland in x86 doesn't seem to be present in ARM. So, I decided to see how syscalls actually flow in ARM. I created a simple assembly file then put a breakpoint at the first instruction.
 ```nasm
     .section .data
 msg:
@@ -442,7 +442,7 @@ Searching for that address in `/proc/kallsyms` reveals that this is a function c
 # grep ffffbd5bf4a121a0 /proc/kallsyms
 ffffbd5bf4a121a0 t ret_to_user
 ```
-You can find the source code [here](https://elixir.bootlin.com/linux/v6.17.7/source/arch/arm/kernel/entry-common.S#L104). After fidling around a bit, I found that the kernel uses a struct called `pt_regs` as a storage helper to switch around between user and kernel land. On entering a syscall, the kernel stores all register values from userland into that `pt_regs` struct. That's what you see happening at the start with all those `stp` instructions. At the end of a syscall, the kernel refers back to the same `pt_regs` struct to get back all the original register values before switching back to userland. That's what you see happening at the end with all those `ldp` instructions. Below is the definition of the `pt_regs` struct. You can see the full source [here](https://elixir.bootlin.com/linux/v6.17.7/source/arch/arm64/include/asm/ptrace.h#L156)
+You can find the source code [here](https://elixir.bootlin.com/linux/v6.17.7/source/arch/arm/kernel/entry-common.S#L104). After fiddling around a bit, I found that the kernel uses a struct called `pt_regs` as a storage helper to switch around between user and kernel land. On entering a syscall, the kernel stores all register values from userland into that `pt_regs` struct. That's what you see happening at the start with all those `stp` instructions. At the end of a syscall, the kernel refers back to the same `pt_regs` struct to get back all the original register values before switching back to userland. That's what you see happening at the end with all those `ldp` instructions. Below is the definition of the `pt_regs` struct. You can see the full source [here](https://elixir.bootlin.com/linux/v6.17.7/source/arch/arm64/include/asm/ptrace.h#L156)
 ```c
 struct pt_regs {
 	union {

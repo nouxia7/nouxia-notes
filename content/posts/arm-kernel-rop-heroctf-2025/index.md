@@ -1,7 +1,7 @@
 ---
 date: '2025-12-04T10:39:10+07:00'
 draft: false
-title: 'Kernel Exploitation in ARM Architecture (HeroCTF v7)'
+title: 'Kernel Exploitation on ARM64 (HeroCTF v7)'
 ---
 
 A couple days ago, our team `CSUI` participated in [HeroCTF v7](https://ctftime.org/event/2869) and managed to secure 9th place at the end. One of the challenges there was `Safe Device`, a pwn challenge with the least solves, clocking in at 7 solves at the end of the event.

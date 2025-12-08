@@ -6,7 +6,7 @@ title: 'A Blind Pwn Challenge: Leaking Flags with Only Open and Read Syscalls (G
 
 About a week or two ago, I participated in Industrial Intursion, one of TryHackMe's capture the flag events. In it was **grid**, a pwn challenge that revolved around writing shellcode to leak the contents of the flag file. While seemingly easy enough, upon further inspection, you would find that there has been a seccomp rule put in place to allow only the **open** and **read** syscalls. This poses an interesting challenge because while you are able to open and read the flag, you wouldn't be able to write out its contents as the write syscall is not part of the whitelist. So, what next? Is it possible to leak the contents of memory without directly writing it out? That's what we'll be exploring today.
 
-# Challenge Overview
+## Challenge Overview
 
 [Download Challenge Files](grid.zip)
 

@@ -65,7 +65,7 @@ uid=0(root) gid=0(root)
 #
 ```
 
-Then, in another window, start the debugging session using GDB and pointing it to the `Image` file, then running the command `start remote :1234`.
+Then, in another window, start the debugging session using GDB and point it to the `Image` file, then run the command `start remote :1234`.
 ```shell
 $ gdb-multiarch Image
 GNU gdb (Ubuntu 15.0.50.20240403-0ubuntu1) 15.0.50.20240403-git
@@ -96,10 +96,10 @@ Remote debugging using :1234
 Alright, everything's all set up! We can move on to the actual module now.
 
 ## The `k.ko` Kernel Module
-On load, the module creates a device file in `/dev/safe_device`. Some operations have been registered on that device, but the one we're interested in is the function handler for ioctl, which is named `safe_ioctl`. The function has two routes, one for the argument `0x80086B02` and one for `0x40086B03`.
+On load, the module creates a device file named `/dev/safe_device`. Some operations have been registered on that device, but the one we're interested in is the function handler for ioctl, which is named `safe_ioctl`. The function has two routes, one for the argument `0x80086B02` and one for `0x40086B03`.
 
 ### The `GET_MSG` Route
-If you use `0x80086B02` for the ioctl operation, you'll go through the `GET_MSG` route. In this route, you can pass any address and the kernel will read 8 bytes at that address and write the value back to your original param.
+If you use `0x80086B02` for the ioctl operation, you'll go through the `GET_MSG` route. In this route, you can pass in any address and the kernel will read 8 bytes of it and write the value back to your original param.
 ```c
 __int64 __fastcall safe_ioctl(__int64 a1, int ioctl_num, unsigned __int64 ioctl_param)
 {
@@ -221,7 +221,7 @@ LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
 pwndbg>
 ```
 
-We found our target, `0xffff000000a90010`. Interestingly, this address doesn't seem to be affected by KASLR. I've run this test multiple times and the address inside `0xffff000000a90010` always points to the kernel image every single time. I'm not quite sure why this happens, but hey, atleast we got our leak.
+We found our target, `0xffff000000a90010`. Interestingly, this address doesn't seem to be affected by KASLR. I've run this test multiple times and the address inside `0xffff000000a90010` always points to the kernel image everytime. I'm not quite sure why this happens, but hey, atleast we got our leak.
 
 ### Bypassing the Canary
 This one is a bit tricker than getting the kernel base. I put a breakpoint in `safe_log` to see where the kernel was obtaining its canary from.
@@ -276,7 +276,7 @@ pwndbg> x/gx 0xffff000001b50190+0xe8
 0xffff000001b50278:     0xf16b8d31cc4fae00
 pwndbg>
 ```
-After fidling around a bit, I found that the above address constantly contained an address that pointed to inside the current task struct. Since that region of memory wasn't contigous with the kernel's memory, I had to find another leak in kernel memory for that particular memory region.
+After fidling around a bit, I found that the above address constantly contained an address that pointed to the current task struct. Since that region of memory wasn't contigous with the kernel's memory, I had to find another leak in kernel memory for that particular memory region.
 ```
 pwndbg> search --dword 0xbd5bf568 [pt_ffffbd5bf5290]
 Searching for a 4-byte integer: b'h\xf5[\xbd'
@@ -312,7 +312,7 @@ struct cred *prepare_kernel_cred(struct task_struct *daemon)
 ```
 
 ### Overwriting `modprobe_path`
-So, my next plan was to overwrite `modprobe_path`. For more information on how it works, you can check this amazing [article](https://theori.io/blog/reviving-the-modprobe-path-technique-overcoming-search-binary-handler-patch) talking about it. So, the next step is to find out where `modprobe_path` actually lives in memory. Initially, `modprobe_path` has the value of `/sbin/modprobe`, so I searched for that string in pwndbg.
+So, my next plan was to overwrite `modprobe_path`. For more information on how it works, you can check this awesome [article](https://theori.io/blog/reviving-the-modprobe-path-technique-overcoming-search-binary-handler-patch) talking about it. So, the next step is to find out where `modprobe_path` actually lives in memory. Initially, `modprobe_path` has the value of `/sbin/modprobe`, so I searched for that string in pwndbg.
 
 ```
 pwndbg> search '/sbin/modprobe'
@@ -353,7 +353,7 @@ This gadget is for loading a bunch of controlled values into registers. Generall
 This gadget is for writing to memory. We'll be using this to overwrite `modprobe_path`.
 
 ### Returning to Userland
-After overwriting `modprobe_path`, we have to return to userland cleanly to be able to use our new modprobe string. If we just go to some random address after our ROP chain, we'll end up crashing the kernel and won't be able to do anything else. To do this, I decided to see how syscalls actually flow in arm64. I created a simple assembly file, assembled it, then put a breakpoint at the first instruction.
+After overwriting `modprobe_path`, we have to return to userland cleanly to be able to use our new modprobe string. If we just go to some random address after our ROP chain, we'll end up crashing the kernel and won't be able to do anything else. The usual `swapgs_restore_regs_and_return_to_usermode` function that you use to switch back to userland in x86 doesn't seem to be present in arm. So, I decided to see how syscalls actually flow in arm64. I created a simple assembly file then put a breakpoint at the first instruction.
 ```nasm
     .section .data
 msg:
@@ -400,7 +400,7 @@ pwndbg> x/20i $pc
    0xffffbd5bf4a11474:  mov     x3, xzr
    0xffffbd5bf4a11478:  mov     x4, xzr
 ```
-This passage seems to be storing all the userland register values into the kernel stack. A pretty logical step for starting a syscall and switching to kernelland. Then after, stepping through a couple more instructions, I seem to find what seems to be the ending of the syscall.
+This passage seems to be storing all the userland register values into the kernel stack. A pretty logical step for starting a syscall when switching to kernelland. After stepping through a couple more instructions, I find what seems to be the ending of the syscall.
 ```nasm
 pwndbg> x/20i $pc
 => 0xffffbd5bf4a12234:  msr     elr_el1, x21
@@ -424,7 +424,7 @@ pwndbg> x/20i $pc
    0xffffbd5bf4a1227c:  msr     far_el1, x29
    0xffffbd5bf4a12280:  adrp    x30, 0xffffbd5bf5576000
 ```
-This passage seems to do the opposite of when we entered the syscall, i.e. it's popping back all the original values of the userland back into their respective registers. This seems to be preparing to switch back to userland. After tracing back this execution, I found that this part was reached through a branch instruction.
+This passage seems to do the opposite of when we entered the syscall, i.e. it's popping back all the original userland values into their respective registers. This seems to be preparing to switch back to userland. After tracing back this execution, I found that it was reached through a branch instruction.
 ```nasm
    0xffffbd5bf4a115c4    b      #0xffffbd5bf4a121a0         <-73272332836448>
 
@@ -466,7 +466,7 @@ struct pt_regs {
 	u64 exit_rcu;
 };
 ```
-There it is! This aligns perfectly with what we've been seeing in assembly. This struct stores all register values from `x0` all the way to `x30`. More importantly, it stores the `pc` register that the kernel will return to once it switches to userland! We finally found our target! This also aligns perfectly well with another thing that happens at the start of a syscall.
+This aligns perfectly with what we've been seeing in assembly! This struct stores all register values from `x0` all the way to `x30`. More importantly, it stores the `pc` register that the kernel will return to once it switches to userland! We finally found our target! This also aligns perfectly well with another thing that happens at the start of a syscall.
 ```nasm
 pwndbg> x/5i 0xffffbd5bf4a10c04
    0xffffbd5bf4a10c04:  mrs     x30, tpidrro_el0
@@ -477,7 +477,7 @@ pwndbg> x/5i 0xffffbd5bf4a10c04
 ```
 Notice how 0x150 is subtracted from `sp`. That number is the exact size of the `pt_regs` struct! So this is the kernel preparing space in the stack for a new `pt_regs` struct.
 
-So now, after we've overwritten modprobe, we'll want to fake a `pt_regs` struct then jump to `ret_to_user` to cleanly switch back to userland. We'll set the `pc` register to an address in our exploit that'll call `exit(0)`. But since, the struct also needs a valid `sp` register value, we'll have to save the current userland `sp` before we jump to kernelmode to execute our exploit. For the `pstate` register, I put a breakpoint again at `safe_log` and examined what the intended value was in `pt_regs`. After restarting a couple times, it seemed to be a constant value of `0x0000000080000000`.
+So now, after we've overwritten modprobe, we'll want to fake a `pt_regs` struct then jump to `ret_to_user` to cleanly switch back to userland. We'll set the `pc` register to an address in our exploit that'll call `exit(0)`. But since the struct also needs a valid `sp` register value, we'll have to save the current userland `sp` before we jump to kernelmode to execute our exploit. For the `pstate` register, I put a breakpoint again at `safe_log` and examined what the intended value was in `pt_regs`. After restarting a couple times, it seemed to be a constant value of `0x0000000080000000`.
 
 ## Conclusion
 So, the things we did in this exploit are:
@@ -491,7 +491,7 @@ So, the things we did in this exploit are:
 8. The important values to fake in the `pt_regs` struct are
     - `pc` (address of where we want to go after switching back to userland)
     - `sp` (stack pointer address in userland, can be obtained by saving the sp before switching to kernelland)
-    - `pstate` (some constant that you can copy to the fake struct)
+    - `pstate` (some constant that you can copy from the original struct)
 
 {{<figure src="images/result.png" width="800" class="align-center">}}
 

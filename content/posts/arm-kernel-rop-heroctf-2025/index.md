@@ -4,7 +4,7 @@ draft: false
 title: 'Kernel Exploitation on ARM64 (HeroCTF v7)'
 ---
 
-A couple days ago, our team `CSUI` participated in [HeroCTF v7](https://ctftime.org/event/2869) and managed to secure 9th place at the end. One of the challenges there was `Safe Device`, a pwn challenge with the least solves, finishing with only 7 solves at the end of the event.
+A couple days ago, our team `CSUI` participated in [HeroCTF v7](https://ctftime.org/event/2869) and managed to secure 9th place at the end. One of the challenges there was `Safe Device`, a pwn challenge with the least solves, finishing with only 7 solves at the end of the event. Unfortunately, I was not able to solve it during the event. I only managed to solve it after the event had ended.
 
 {{<figure src="images/challenge.png" width="400" class="align-center">}}
 

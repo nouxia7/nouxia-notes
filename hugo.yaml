@@ -7,7 +7,7 @@ enableRobotsTXT: true
 
 minify:
   disableXML: true
-  minifyOutput: true
+  # minifyOutput: true
 
 params:
   env: production

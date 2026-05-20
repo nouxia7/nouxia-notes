@@ -149,6 +149,44 @@ This was enough for the competition, but it only worked because SMEP and SMAP we
 
 The custom syscall clears registers before jumping, but it does not null out values already on the kernel stack. On x86_64, before any main syscall logic gets executed, the kernel saves user registers into a `pt_regs` struct on the kernel stack. This struct contains values from userland such as register values, stack pointers, next instruction pointer, etc.
 
+To confirm this, I put a breakpoint around `entry_SYSCALL_64` and stepped into the syscall path.
+
+```asm{linenos=true}
+pwndbg> x/30i 0xffffffff810000a3
+   0xffffffff810000a3 <entry_SYSCALL_64+35>:  mov    rsp,QWORD PTR gs:[rip+0x27ddf65]        # 0xffffffff837de010 <cpu_current_top_of_stack>
+=> 0xffffffff810000ab <entry_SYSCALL_64+43>:  push   0x2b
+   0xffffffff810000ad <entry_SYSCALL_64+45>:  push   QWORD PTR gs:[rip+0x27cef60]        # 0xffffffff837cf014 <cpu_tss_rw+20>
+   0xffffffff810000b4 <entry_SYSCALL_64+52>:  push   r11
+   0xffffffff810000b6 <entry_SYSCALL_64+54>:  push   0x33
+   0xffffffff810000b8 <entry_SYSCALL_64+56>:  push   rcx
+   0xffffffff810000b9 <entry_SYSCALL_64+57>:  push   rax
+   0xffffffff810000ba <entry_SYSCALL_64+58>:  push   rdi
+   0xffffffff810000bb <entry_SYSCALL_64+59>:  push   rsi
+   0xffffffff810000bc <entry_SYSCALL_64+60>:  push   rdx
+   0xffffffff810000bd <entry_SYSCALL_64+61>:  push   rcx
+   0xffffffff810000be <entry_SYSCALL_64+62>:  push   0xffffffffffffffda
+   0xffffffff810000c0 <entry_SYSCALL_64+64>:  push   r8
+   0xffffffff810000c2 <entry_SYSCALL_64+66>:  push   r9
+   0xffffffff810000c4 <entry_SYSCALL_64+68>:  push   r10
+   0xffffffff810000c6 <entry_SYSCALL_64+70>:  push   r11
+   0xffffffff810000c8 <entry_SYSCALL_64+72>:  push   rbx
+   0xffffffff810000c9 <entry_SYSCALL_64+73>:  push   rbp
+   0xffffffff810000ca <entry_SYSCALL_64+74>:  push   r12
+   0xffffffff810000cc <entry_SYSCALL_64+76>:  push   r13
+   0xffffffff810000ce <entry_SYSCALL_64+78>:  push   r14
+   0xffffffff810000d0 <entry_SYSCALL_64+80>:  push   r15
+   0xffffffff810000d2 <entry_SYSCALL_64+82>:  xor    esi,esi
+   0xffffffff810000d4 <entry_SYSCALL_64+84>:  xor    edx,edx
+   0xffffffff810000d6 <entry_SYSCALL_64+86>:  xor    ecx,ecx
+   0xffffffff810000d8 <entry_SYSCALL_64+88>:  xor    r8d,r8d
+   0xffffffff810000db <entry_SYSCALL_64+91>:  xor    r9d,r9d
+   0xffffffff810000de <entry_SYSCALL_64+94>:  xor    r10d,r10d
+   0xffffffff810000e1 <entry_SYSCALL_64+97>:  xor    r11d,r11d
+   0xffffffff810000e4 <entry_SYSCALL_64+100>: xor    ebx,ebx
+```
+
+The first few pushes are the values needed for returning to userland later, i.e. `ss`, `rsp`, `rflags`, `cs`, and `rip`. After that, the kernel pushes the general purpose registers, ending with `r15`.
+
 This is perfect for us. If we fill those registers with a ROP chain before executing the syscall, the values will be copied into the kernel stack for us. Now, we only need a way to move `rsp` upward until it points into that saved `pt_regs` struct.
 
 So, the new plan is:
